@@ -1,0 +1,72 @@
+<%- include('includes/header') -%>
+
+
+<% if (successMessage) { %>
+    <div id="baseAlert" class="alert alert-success">
+        <%= successMessage %>
+    </div>
+<% } %>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    var alertElement = document.getElementById("baseAlert");
+
+    function hideAlert() {
+    alertElement.style.display = "none";
+    }
+
+    setTimeout(hideAlert, 2500);
+
+    });
+    console.log('Hello')
+</script>
+<style>
+    #baseAlert {
+        min-width: 259px;
+        padding: 0 !important;
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+        padding-top: 10px !important;
+        position: fixed;
+        top: 16px;
+        right: 20px;
+        z-index: 1000;
+        font-size: 15px;
+        font-weight: 700;
+        height: 43px !important;
+    }
+</style>
+
+<div class="register-form-wrapper">
+    <div>
+        <div class="form-header-wrapper">
+            <h1 class="form-header">Hello dear user!</h1>
+        </div>
+
+        <form method="POST" class="register-form">
+            <div class="form-group">
+                <label for="exampleInputUsername">Username</label>
+                <input name="username" type="text" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="exampleInputPassword1">Password</label>
+                <input name="password" type="password" class="form-control">
+            </div>
+            <small class="haveaccount" >
+                Already have an account? <a href="/register">Register</a>
+                <br>
+            </small>
+            <% if (errors && errors.length> 0) { %>
+                <div class="alert alert-danger" role="alert">
+                    <% errors.forEach(error=> { %>
+                    * <%= error.msg %>
+                        <br>
+                        <% }) %>
+                </div>
+            <% } %>
+            <button type="submit" class="btn btn-primary regiser-btn">Login</button>
+        </form>
+
+    </div>
+</div>
+<%- include('includes/footer') -%>

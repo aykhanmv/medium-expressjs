@@ -1,0 +1,33 @@
+.register-form {
+    width: 600px;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+    background-color: white;
+}
+
+.register-form-wrapper{
+    display: flex;
+    justify-content: center;
+    margin-top: 200px;
+}
+
+body{
+    background-color: #F2F4F6;
+}
+
+.regiser-btn{
+    margin-top: 10px;
+}
+
+.form-header-wrapper{
+    text-align: center;
+}
+
+.haveaccount{
+    font-size: 15px;
+}
+
+.alert-danger{
+    margin-top: 10px;
+}

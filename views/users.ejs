@@ -1,0 +1,25 @@
+<%- include('includes/header') -%>
+
+<table class="table">
+    <caption>List of users</caption>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Password</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% users.forEach(user=> { %>
+            <tr>
+                <td><%= user.id %></td>
+                <td><%= user.username %></td>
+                <td><%= user.email %></td>
+                <td><%= user.password %></td>
+            </tr>
+        <% }) %>
+    </tbody>
+</table>
+
+<%- include('includes/footer') -%>
