@@ -1,7 +1,5 @@
 // Importing Requirements
 const express = require('express');
-const session = require('express-session')
-const path = require('path')
 const mysql = require('mysql');
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
@@ -36,7 +34,7 @@ const requireLogin = (req, res, next) => {
 
 app.get('/register', (req, res) => {
     if (req.session.loggedIn) {
-        res.redirect('/users');
+        res.redirect('/');
     }
     else{
         res.render('register', errors = null);
@@ -124,9 +122,8 @@ app.post('/register', [
 app.get('/login', (req, res) => {
     const successMessage = req.query.success === '1' ? 'You have successfully registered. You can log in now.' : null;
     if(req.session.loggedIn)
-        res.redirect('/users')
+        res.redirect('/')
     else
-        console.log(successMessage);
         res.render('login', { successMessage, errors: null });
 });
 
@@ -140,7 +137,7 @@ app.post('/login', [
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.render('login', { errors: errors.array() });
+        return res.render('login', { successMessage : null, errors: errors.array() });
     }
 
     try {
@@ -156,7 +153,7 @@ app.post('/login', [
 
                 // Check if user with the given username exists
                 if (results.length === 0) {
-                    return res.render('login', { errors: [{ msg: 'Invalid username or password' }] });
+                    return res.render('login', { successMessage : null, errors: [{ msg: 'Invalid username or password' }] });
                 }
 
                 // Compare the provided password with the hashed password from the database
@@ -171,10 +168,10 @@ app.post('/login', [
                     req.session.username = user.username;
                     
                     // Redirect authenticated users
-                    res.redirect('/users'); 
+                    res.redirect('/'); 
                 } else {
                     // Passwords do not match
-                    return res.render('login', { errors: [{ msg: 'Invalid username or password' }] });
+                    return res.render('login', { successMessage : null, errors: [{ msg: 'Invalid username or password' }] });
                 }
             }
         );
@@ -198,6 +195,11 @@ app.get('/users', requireLogin, (req, res) => {
         if (err) throw err;
         res.render('users', { users: rows, username: req.session.username });
     });
+});
+
+// ========================================================= Home page ==========
+app.get('/', requireLogin, (req, res) => {
+    res.render('home');
 });
 
 app.listen(3000, () => console.log('Application is running on 3000'));
