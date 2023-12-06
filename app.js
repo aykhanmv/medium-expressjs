@@ -3,7 +3,7 @@ const express = require('express');
 const mysql = require('mysql');
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
-
+require('dotenv').config(); // Load environment variables from .env file
 
 const setupApp = require('./appSetup');
 // Initialize Express app
@@ -11,15 +11,14 @@ const app = express();
 
 // MYSQL Connection
 const conn = mysql.createConnection({
-  host: '127.0.0.1',
-  user: 'root',
-  password: 'root',
-  database: 'cuisine',
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
 });
 
 // Setup the app using the imported function
 setupApp(app, conn);
-
 
 
 // ========================================================= Register page ==========
@@ -31,6 +30,38 @@ const requireLogin = (req, res, next) => {
     }
 };
 
+const isAdmin = (req, res, next) => {
+    // Check if user is logged in
+    if (!req.session.loggedIn) {
+      return res.redirect('/login');
+    }
+  
+    // Retrieve user ID from session
+    const userId = req.session.userid;
+  
+    // Query the database to check if the user is an admin
+    const query = 'SELECT * FROM user WHERE id = ? AND is_admin = 1';
+  
+    conn.query(query, [userId], (error, results) => {
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return res.status(500).send('Internal Server Error');
+      }
+  
+      // Check if user is an admin based on query results
+      const isAdminUser = results.length > 0;
+  
+      if (isAdminUser) {
+        // User is an admin, proceed to the next middleware or route
+        next();
+      } else {
+        // User is not an admin, redirect to unauthorized page or handle accordingly
+        res.status(403).send('Forbidden - You are not an admin.');
+      }
+    });
+  };
+
+  
 
 app.get('/register', (req, res) => {
     if (req.session.loggedIn) {
@@ -166,6 +197,7 @@ app.post('/login', [
                     // Set session variables
                     req.session.loggedIn = true;
                     req.session.username = user.username;
+                    req.session.userid = user.id
                     
                     // Redirect authenticated users
                     res.redirect('/'); 
@@ -190,7 +222,7 @@ app.get('/logout', (req, res) => {
 });
 
 // ========================================================= Users page ==========
-app.get('/users', requireLogin, (req, res) => {
+app.get('/users', requireLogin, isAdmin, (req, res) => {
     conn.query('SELECT * FROM user', (err, rows) => {
         if (err) throw err;
         res.render('users', { users: rows, username: req.session.username });
@@ -198,8 +230,236 @@ app.get('/users', requireLogin, (req, res) => {
 });
 
 // ========================================================= Home page ==========
-app.get('/', requireLogin, (req, res) => {
-    res.render('home');
+// Define a function to get user by userid
+const getUserById = (userid) => {
+    return new Promise((resolve, reject) => {
+        conn.query('SELECT * FROM user WHERE id = ?', [userid], (err, userResults) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(userResults[0]);
+            }
+        });
+    });
+};
+// Inside your route handler
+app.get('/', requireLogin, async (req, res) => {
+    try {
+        // Get the user object based on userid
+        const user = await getUserById(req.session.userid);
+
+        // Determine whether to fetch all mediums or only non-premium mediums
+        const query = user.is_premium
+            ? 'SELECT medium.*, user.username AS username FROM medium JOIN user ON medium.user_id = user.id ORDER BY medium.id DESC'
+            : 'SELECT medium.*, user.username AS username FROM medium JOIN user ON medium.user_id = user.id WHERE medium.is_premium = 0 ORDER BY medium.id DESC';
+
+        conn.query(query, (err, mediumResults) => {
+            if (err) {
+                console.error('Error fetching mediums from the database:', err.message);
+                return res.status(500).send('Internal Server Error');
+            }
+
+            const successMessage = req.query.success === '1' ? 'You have successfully posted your medium.' : null;
+
+            // Pass the mediums data and user object to the home view
+            res.render('home', { successMessage, errors: null, mediums: mediumResults, user });
+        });
+    } catch (error) {
+        console.error('Error getting user by ID:', error.message);
+        res.status(500).send('Internal Server Error');
+    }
 });
+
+app.post('/', requireLogin, [
+    body('title').trim().escape().notEmpty().withMessage('Title is required'),
+    body('content').trim().escape().notEmpty().withMessage('Content is required'),
+], async (req, res) => {
+    // Process form data
+    const { title, content, is_premium } = req.body;
+
+    // Check for validation errors
+    const errors = validationResult(req);
+
+    // Fetch all mediums or only non-premium mediums based on user's premium status
+    try {
+        // Get the user object based on userid
+        const user = await getUserById(req.session.userid);
+
+        const query = user.is_premium
+            ? 'SELECT medium.*, user.username AS username FROM medium JOIN user ON medium.user_id = user.id ORDER BY medium.id DESC'
+            : 'SELECT medium.*, user.username AS username FROM medium JOIN user ON medium.user_id = user.id WHERE medium.is_premium = 0 ORDER BY medium.id DESC';
+
+        conn.query(query, (err, mediumResults) => {
+            if (err) {
+                console.error('Error fetching mediums from the database:', err.message);
+                return res.status(500).render('error', { message: 'Internal Server Error' });
+            }
+
+            if (!errors.isEmpty()) {
+                // Render the home view with validation errors and fetched mediums data
+                return res.render('home', { successMessage: null, errors: errors.array(), mediums: mediumResults, user });
+            }
+
+            // Save the medium into the database
+            const currentDate = new Date();
+            const formattedDate = currentDate.toISOString().slice(0, 19).replace("T", " "); // Format: YYYY-MM-DD HH:MM:SS
+
+            const userId = req.session.userid; // Assuming you have a session variable for user ID
+
+            conn.query(
+                'INSERT INTO medium (user_id, title, content, is_premium, posted_datetime) VALUES (?, ?, ?, ?, ?)',
+                [userId, title, content, is_premium ? 1 : 0, formattedDate],
+                (err, results) => {
+                    if (err) {
+                        console.error('Error saving medium into the database:', err.message);
+                        return res.status(500).render('error', { message: 'Internal Server Error' });
+                    }
+
+                    // Redirect to home page with success message
+                    res.redirect('/?success=1');
+                }
+            );
+
+        });
+    } catch (error) {
+        console.error('Error getting user by ID:', error.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+
+app.post('/toggle-premium/:userId', requireLogin, async (req, res) => {
+    const userId = req.params.userId;
+
+    try {
+        // Fetch the user from the database based on userId
+        const [user] = await new Promise((resolve, reject) => {
+            conn.query('SELECT * FROM user WHERE id = ?', [userId], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        // Toggle the is_premium status
+        const updatedIsPremium = !user.is_premium;
+
+        // Update the user's is_premium status in the database
+        await new Promise((resolve, reject) => {
+            conn.query('UPDATE user SET is_premium = ? WHERE id = ?', [updatedIsPremium, userId], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        res.redirect('/');
+    } catch (error) {
+        console.error('Error toggling premium status:', error.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+app.post('/add-medium/:userId/:mediumId', requireLogin, async (req, res) => {
+    const userId = req.params.userId;
+    const mediumId = req.params.mediumId;
+
+    try {
+        // Check if the relation already exists
+        const [existingRelation] = await new Promise((resolve, reject) => {
+            conn.query('SELECT * FROM medium_relation WHERE user_id = ? AND medium_id = ?', [userId, mediumId], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        // If the relation exists, remove it
+        if (existingRelation) {
+            await new Promise((resolve, reject) => {
+                conn.query('DELETE FROM medium_relation WHERE user_id = ? AND medium_id = ?', [userId, mediumId], (err, results) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+        } else {
+            // If the relation does not exist, add a new record
+            await new Promise((resolve, reject) => {
+                conn.query('INSERT INTO medium_relation (user_id, medium_id) VALUES (?, ?)', [userId, mediumId], (err, results) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+        }
+
+        res.redirect('/');
+    } catch (error) {
+        console.error('Error handling medium relation:', error.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+app.get('/saved-mediums/:userId', requireLogin, async (req, res) => {
+    const userId = req.params.userId;
+
+    try {
+        // Check if the user exists
+        const [user] = await new Promise((resolve, reject) => {
+            conn.query('SELECT * FROM user WHERE id = ?', [userId], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        // Fetch the saved mediums for the user
+        const savedMediums = await new Promise((resolve, reject) => {
+            conn.query(
+                'SELECT medium.* FROM medium JOIN medium_relation ON medium.id = medium_relation.medium_id WHERE medium_relation.user_id = ? ORDER BY medium.id DESC',
+                [userId],
+                (err, results) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(results);
+                    }
+                }
+            );
+        });
+
+        // Pass the saved mediums data and user object to the saved-mediums view
+        res.render('home', { mediums : savedMediums, user, successMessage : null, errors : null});
+    } catch (error) {
+        console.error('Error fetching saved mediums:', error.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
 
 app.listen(3000, () => console.log('Application is running on 3000'));

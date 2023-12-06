@@ -53,7 +53,7 @@ const setupApp = (app, conn) => {
             console.log('User table created successfully');
 
             // Inserting initial user with hashed password
-            const initialPassword = 'admin'; // You can change this to a more secure initial password
+            const initialPassword = 'admin';
             const hashedPassword = await bcrypt.hash(initialPassword, 10);
 
             try {
@@ -77,7 +77,46 @@ const setupApp = (app, conn) => {
         }
     );
 
+    conn.query(
+        `
+        CREATE TABLE IF NOT EXISTS medium (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+            title VARCHAR(255) NOT NULL,
+            content TEXT,
+            is_premium BOOLEAN DEFAULT FALSE,
+            posted_datetime VARCHAR(255) NOT NULL
+        )
+      `,
+        (err, results) => {
+            if (err) {
+                console.error('Error creating medium table:', err.message);
+                return;
+            }
+            console.log('Medium table created successfully');
+        }
+    );
 
+    conn.query(
+        `
+        CREATE TABLE IF NOT EXISTS medium_relation (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            medium_id INT,
+            FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+            FOREIGN KEY (medium_id) REFERENCES medium(id) ON DELETE CASCADE
+        )
+      `,
+        (err, results) => {
+            if (err) {
+                console.error('Error creating medium_relation table:', err.message);
+                return;
+            }
+            console.log('Medium_relation table created successfully');
+        }
+    );
+    
 
     return app;
 };

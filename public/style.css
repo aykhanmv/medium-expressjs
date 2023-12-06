@@ -31,3 +31,123 @@ body{
 .alert-danger{
     margin-top: 10px;
 }
+
+
+/* ================================== HOME ==================================== */
+
+.myleftaside {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+    border-radius: 15px !important;
+}
+
+.text-gray-700 {
+    background-color: white !important;
+}
+
+body {
+    background-color: #F2F4F6;
+}
+
+.left-aside {
+    position: fixed;
+    height: 850px;
+}
+
+.medium-date {
+    display: flex;
+    font-style: italic;
+    align-items: center;
+}
+
+.medium-footer {
+    display: flex;
+    justify-content: end;
+    padding: 5px 20px 10px 0px;
+}
+
+.medium-card {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+    border-style: solid !important;
+    border-width: thin;
+    border-radius: 15px;
+    width: 1000px;
+    height: fit-content;
+    margin-left: 250px;
+    background-color: white;
+    margin-bottom: 50px;
+}
+
+.medium-username-title {
+    display: flex;
+    font-size: 22px;
+    font-weight: 700;
+    padding: 20px;
+}
+
+.medium-title {
+    margin-left: 20px;
+    font-weight: 500 !important;
+}
+
+.medium-content {
+    max-height: 200px;
+    overflow: hidden;
+    padding: 20px;
+    font-size: 18px;
+}
+
+.medium-icons {
+    scale: 1.5;
+}
+
+
+.medium-links {
+    width: 180px;
+    padding: 15px;
+    margin-left: 10px;
+}
+
+.aside-icons {
+    scale: 1.5;
+    margin-left: 5px;
+    margin-right: 4px;
+}
+
+.medium-date {
+    margin-left: auto;
+}
+
+.right-aside {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+    border-radius: 15px;
+    width: 520px;
+    padding: 20px;
+    background-color: white !important;
+    position: fixed;
+    right: 0;
+    margin-right: 40px !important;
+}
+
+.form-header {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.med-form-btn{
+    background-color: #007BFF !important;
+}
+
+.medium-send{
+    margin-left: 10px;
+}
+
+.premium-icon{
+    color: #FCC200;
+    margin-right: 5px;
+    scale: 1.3;
+}
+
+.medium-icons:hover {
+    color: red;
+}
