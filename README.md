@@ -33,6 +33,14 @@ To run this project locally, follow these steps:
     npm start
     ```
 
+## Admin User
+There is a built-in admin user which you can use to discover the web application with full privileges.
+```
+Username: admin
+Password: admin
+Email: admin@gmail.com
+```
+
 The application will be accessible at `http://localhost:3000` by default.
 
 ## Endpoints and Functionality
